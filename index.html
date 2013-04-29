@@ -37,18 +37,22 @@
 
 <hr><h2>Examples</h2>
 
-<p>Consider the following commands for understanding what the project does.<br>
-1. A simple example:  </p>
+<p>Consider the following commands for understanding what the project does.    </p>
 
-<p><strong>cat  /home/remote/1gb.img | wc</strong><br>
-In this example 1gb.img is a 1GB file wich is present on the remote machine. The remote directory on the remote server has been mounted on the local machine via sshfs. A command like this in BASH would take a very long time to run since BASH would try to download the file to the local machine first. However in the project, this command would get transformed to the following:   </p>
+<ul>
+<li>A simple example:<br>
+</li>
+</ul><p><strong>cat  /home/remote/1gb.img | wc</strong><br>
+In this example 1gb.img is a 1GB file wich is present on the remote machine. The remote directory on   the remote server has been mounted on the local machine via sshfs. A command like this in BASH would  take a very long time to run since BASH would try to download the file to the local machine first.  However in the project, this command would get transformed to the following:   </p>
 
 <p><strong>ssh  server  " cat   /home/1gb.img   |   wc"</strong><br>
-Here since we SSH to the remote server and then execute the command directly on the server, there is no need to download the entire file before execution and the operation finishes within a couple of seconds.<br>
-2. A slightly complex example:     </p>
+Here since we SSH to the remote server and then execute the command directly on the server, there is  no need to download the entire file before execution and the operation finishes within a couple of  seconds.   </p>
 
-<p><strong>cat   /home/remote1/1gb.img   /home/remote2/100mb.img  |  wc</strong><br>
-In this example, there are 2 remote servers involved in the operation. One remote directory has been mounted on remote1 directory and the other on remote2 directory on the local machine. Since there is more than 1 file and server involved in the operation, query planning comes into play. Query planning is done based on the amount of data transfer between the two servers and the local machine. Following possibilities will be considered before deciding as to where the command should be executed - whether on the local machine, on remote server1 or on remote server2:   </p>
+<ul>
+<li>A slightly complex example:<br>
+</li>
+</ul><p><strong>cat   /home/remote1/1gb.img   /home/remote2/100mb.img  |  wc</strong><br>
+In this example, there are 2 remote servers involved in the operation. One remote directory has been  mounted on remote1 directory and the other on remote2 directory on the local machine. Since there is more than 1 file and server involved in the operation, query planning comes into play. Query planning is done based on the amount of data transfer between the two servers and the local machine. Following possibilities will be considered before deciding as to where the command should be executed - whether on the local machine, on remote server1 or on remote server2:   </p>
 
 <ol>
 <li>Data transfer needed to execute command on remote server 1 : 100MB (since 100mb.img is located on server2)</li>
