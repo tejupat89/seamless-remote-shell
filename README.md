@@ -1,3 +1,4 @@
+##Seamless Remote Shell
 Today we either log into a remote machine using SSH and perform operations there or we mount a remote directory on the 
 local machine via sshfs and perform operations on the local machine. However, if you mount the remote directory and if 
 the files on the remote directory are as large as 1GB, then the operations tend to be very slow. This is because while 
@@ -36,4 +37,15 @@ the following:
   server 1. So the 100mb.img file on server2 is copied to server1 via scp and then the command is transformed to the 
   following before execution :
 
-  *ssh  server1  "cat  /home/1gb.img  /home/100mb.img  |  wc"*
+  *ssh  server1  "cat  /home/1gb.img  /home/100mb.img  |  wc"*    
+
+***
+
+**Installation**   
+1. Download zip folder or clone the repo : `git clone https://github.com/tejupat89/seamless-remote-shell.git`     
+2. Before running the Makefile:    
+ install flex using the command `sudo apt-get install flex`      
+ install bison using the command `sudo agt-get install bison`      
+3. Go to the src folder inside the repository.     
+4. run `make all`     
+5. start the shell with the following command `./example`
