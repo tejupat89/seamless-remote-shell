@@ -42,16 +42,16 @@
 <ul>
 <li>A simple example:<br>
 </li>
-</ul><p><strong>cat  /home/remote/1gb.img | wc</strong><br>
+</ul><p><code>cat  /home/remote/1gb.img | wc</code><br>
 In this example 1gb.img is a 1GB file wich is present on the remote machine. The remote directory on   the remote server has been mounted on the local machine via sshfs. A command like this in BASH would  take a very long time to run since BASH would try to download the file to the local machine first.  However in the project, this command would get transformed to the following:   </p>
 
-<p><strong>ssh  server  " cat   /home/1gb.img   |   wc"</strong><br>
+<p><code>ssh  server  " cat   /home/1gb.img   |   wc"</code><br>
 Here since we SSH to the remote server and then execute the command directly on the server, there is  no need to download the entire file before execution and the operation finishes within a couple of  seconds.   </p>
 
 <ul>
 <li>A slightly complex example:<br>
 </li>
-</ul><p><strong>cat   /home/remote1/1gb.img   /home/remote2/100mb.img  |  wc</strong><br>
+</ul><p><code>cat   /home/remote1/1gb.img   /home/remote2/100mb.img  |  wc</code><br>
 In this example, there are 2 remote servers involved in the operation. One remote directory has been  mounted on remote1 directory and the other on remote2 directory on the local machine. Since there is more than 1 file and server involved in the operation, query planning comes into play. Query planning is done based on the amount of data transfer between the two servers and the local machine. Following possibilities will be considered before deciding as to where the command should be executed - whether on the local machine, on remote server1 or on remote server2:   </p>
 
 <ol>
@@ -60,7 +60,38 @@ In this example, there are 2 remote servers involved in the operation. One remot
 </li>
 <li>Data transfer needed to execute command on local machine : 1GB + 100MB (since both are located on remote servers)<br>
 </li>
-</ol><p>Since the first choice requires the least amount of data transfer, the operation will be executed on server 1. So the 100mb.img file on server2 is copied to server1 via scp and then the command is transformed to the following before execution :<br><strong>ssh  server1  "cat  /home/1gb.img  /home/100mb.img  |  wc"</strong></p>
+</ol><p>Since the first choice requires the least amount of data transfer, the operation will be executed on server 1. So the 100mb.img file on server2 is copied to server1 via scp and then the command is transformed to the following before execution :<br><code>ssh  server1  "cat  /home/1gb.img  /home/100mb.img  |  wc"</code>      </p>
+
+<hr><h2>Architecture of the Shell</h2>
+
+<p>The Shell has several components as follows:<br><strong>Parser</strong><br>
+User input is sent first to the parser to build a structure of the command entered, for processing in later stages of execution. The parser currently defines basically 3 types of commands:<br>
+1. commands that accept only strings as arguments such as <code>echo</code><br>
+2. commands that accept only files as arguments such as <code>cat</code><br>
+3. commands that accept both files and strings(patterns) as arguments such as <code>grep</code><br>
+4. default commands where every string argument is checked to see if it is a filepath and exists in the system. It it doesn't it is treated as a simple string, otherwise it is treated as a file.<br>
+On an upper level commands are also categorized into simple commands and piped commands. A piped command is made up of several simple commands linked together. The grammar is defined in a way so as to differentiate between whether an argument supplied to a command should be treated just as a STRING or a FILE. For example, for a command like grep, the grammar would be defined as:<br>
+[GREP] [-OPTIONS] [STRING/PATTERN] [FILE/FILES]<br><br><br><strong>Identifying remote files</strong><br>
+Every FILE token in the grammar is analyzed to check if it is present on the local system or has been mounted on the local system and hence is present on the remote system. This is done with the help of function stat and major and minor device IDs. Every remote system that is mounted on the local system will have a different major and minor device ID from that of the local system. Using the device IDs of the files, we can figure out if they are present on the local or remote system.<br><br><br><br><strong>Identifying the host of the remote file</strong><br>
+With the help of a function called mount, we can get a list of remote systems that have been mounted on the local system. The function returns a mapping from the remote directory present on the host to the local directory present on the local machine. Searching through the list returned by mount, we can find out the host server name that the file is actually present on. For every remote file, its server name and original directory name on the remote machine are stored. After building the entire structure for the command with the help of parser, the next step is to decide on a plan as to where the command will be executed. In order to decide where the command will be executed, we need to know the cost of executing a command on the local system and on each of the hosts/remote systems that have been mounted on the local system and are involved in the operation of the command. Knowing these costs we can pick a choice that costs us the minimum.<br><br><br><br><strong>Cost Computation</strong><br>
+For every command a list of costs are maintained:<br>
+1. input costs: This involves the input file costs involved in the operation.<br>
+2. output costs: This involves the amount of output generated by the command. Data is maintained as to how much output a command generates. Commands like <code>cat</code> and <code>grep</code> are considered to generate output equal to the amount of input i.e the size of the file, whereas commands like <code>wc</code> generate just 2 lines of output.<br>
+3. redirection output costs: If there is an output redirection from the command, the cost of redirecting that output(depending on which host the output file is present on ) is maintained.<br>
+4. execution cost: the execution cost of a command on each of the hosts involved in the operation. For example, if there are 2 hosts involved in the operation - Host 1 and Host 2, then the cost of executing the command on Host 1 will include all the local files and the remote files on Host 2 that have to be transferred to Host 1 to complete the operation.<br>
+5. piped input : every single command in the piped command knows the amount of input it would receive from the previous command in the pipeline.<br><br><br><strong>Query Planning</strong><br>
+Consider a piped command such as:<br><code>command1 | command2 | command3</code><br>
+Lets say there is just one host involved in the operation. Lets denote this host by 1 and the local system by 0. One way to find out where the command should be executed is to consider the exhaustive search space  and evaluate every possible permutation. Each command in the pipeline has 2 choices of execution, either a 0(on the local system) or a 1(remote system), this gives us a total of 8 possibilities. Computing the cost of each of the 8 possibilities and then selecting the plan which has the minimum cost is an efficient way to do the planning if the number of hosts involved in the operation are less. If there are 4 hosts involved in the operation and the number of command in the pipeline are 10, then the exhaustive method will generate 4^10 choices. Thus the search space increases exponentially in the number of hosts involved and hence for larger number of hosts involved in the operation, we have to prune down the search space and consider less number of choices. Below is a method that reduces the number of choices efficiently by invalidating some choices sequentially at each step and considering only a subset of choices for each command.       </p>
+
+<p>For each command we maintain a table of following statistics:<br>
+1. host on which the command is executed - lets denote this by Input host<br>
+2. host to which the output from the command is sent - lets denote this by Output host    </p>
+
+<p><img src="https://github.com/tejupat89/seamless-remote-shell/blob/master/query.jpg?raw=true" alt="Query planning image"></p>
+
+<p>In the figure above each row in a table contains the following information:<br>
+cost = execution cost on i/p host + cost of sending output to o/p host<br>
+For each command in the pipeline we keep track of the minimum cost for each o/p host(denoted in the table by bold letters). For each command in a pipeline, the costs of previous commands are added to the current cost too. So, the minimum cost in the table of the final command in the pipeline gives the minimum cost of execution for the entire pipeline. Now we can backtrack to the previous commands to find out the host on which they have to be executed.          </p>
       </section>
     </div>
 
