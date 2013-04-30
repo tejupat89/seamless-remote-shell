@@ -41,11 +41,36 @@ the following:
 
 ***
 
-**Installation**   
-1. Download zip folder or clone the repo : `git clone https://github.com/tejupat89/seamless-remote-shell.git`     
-2. Before running the Makefile:    
- install flex using the command `sudo apt-get install flex`      
- install bison using the command `sudo agt-get install bison`      
-3. Go to the src folder inside the repository.     
-4. run `make all`     
-5. start the shell with the following command `./example`
+###Installation and Setup
+ Download zip folder or clone the repo : `git clone https://github.com/tejupat89/seamless-remote-shell.git`  
+    Lets consider an example where we mount 2 remote servers on our local machine and then perform an operation that 
+    involves files from both machines.      
+    
+ **Establish passwordless ssh login between the hosts involved in the operation.**       
+ Lets say the 2 remote hosts are user1@server1(host1) and user2@server2(host2).
+ It is required that passwordless login is setup between the local machine and the remote hosts and also between the
+ remote hosts themselves. Lets consider an example of establishing passwordless login between local machine and host1:    
+        1. Create public and private keys on local host using `ssh-keygen`     
+        2. copy your local host's public key to the remote host using `ssh-copy-id -i ~/.ssh/id_rsa.pub host1`.        
+           ssh-copy-id copies the local-host’s public key to the remote-host’s authorized_keys file. ssh-copy-id also 
+           assigns proper permission to the remote-host’s home, ~/.ssh, and ~/.ssh/authorized_keys.    
+        3. Try logging into host1 via ssh and it shouldn't require you to enter a password now : `ssh host1`    
+        4. To establish passwordless login from1 host1 to host2, ssh into host1 and repeat the first 3 steps for 
+           copying public keys to host2.    
+        5. To establish passwordless login from1 host2 to host1, ssh into host2 and repeat the first 3 steps for 
+           copying public keys to host1.     
+           
+ **Mounting the remote hosts via sshfs**     
+ Now that passwordless ssh login is established between the hosts, mount the hosts on local machine via sshfs:     
+    1. To mount host1 on directory dir1 on local machine: `sshfs host1: dir1`   
+    2. To mount host2 on directory dir2 on local machine: `sshfs host2: dir2`      
+
+ **Start the shell**      
+    1. Go to the src folder inside the downloaded repository on your machine.    
+    2. run `make all`    
+    3. You need to have flex(a scanner generator) and bison (a parser generator) installed on the local machine. They can
+    be installed by running `sudo apt-get install flex` and `sudo apt-get install bison`.     
+    4. Enter commands at the prompt. The shell doesn't recognize the home sign (~). So you will have to specify the 
+    complete filepath for each file you use in the operation. e.g consider the following command :     
+    `cat /home/dir1/remote_file1 /home/dir2/remote_file2 | wc`         
+    
