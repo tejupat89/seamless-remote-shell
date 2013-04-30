@@ -70,7 +70,7 @@ the following:
     2. run `make all`    
     3. You need to have flex(a scanner generator) and bison (a parser generator) installed on the local machine. They can
     be installed by running `sudo apt-get install flex` and `sudo apt-get install bison`.     
-    4. Enter commands at the prompt. The shell doesn't recognize the home sign (~). So you will have to specify the 
+    4. Start the shell with `./shell`. Enter commands at the prompt. The shell doesn't recognize the home sign (~). So you will have to specify the 
     complete filepath for each file you use in the operation. e.g consider the following command :     
     `cat /home/dir1/remote_file1 /home/dir2/remote_file2 | wc`         
     
