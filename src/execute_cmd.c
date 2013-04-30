@@ -11,6 +11,7 @@
 #include "print_cmd.h"
 #include "dispose_cmd.h"
 #include "new_cost.h"
+#include "plan.h"
 #include "debug.h"
 
 extern char **environ;
@@ -50,6 +51,7 @@ void execute_command(COMMAND *command)
 
 void execute_simple_command(COMMAND *command)
 {
+	check_remote_threshold_simple(command);
 	if(*(global_plan->array[0])==0)
 		execute_simple_command_locally(command->value.Simple);
 	else
@@ -127,13 +129,19 @@ void execute_pipe_command(COMMAND *command)
 		}	
 		else
 		{
-			grp_array[index].num_of_coms++;
-			 
+			grp_array[index].num_of_coms++; 
 		}
 		command1 = pipe->next;
 		if(command1)
 			pipe = command1->value.Pipe;
 	}
+	for(int i=0; i<num_of_grps; i++)
+	{
+		print_execution_grp(&grp_array[i]);
+	}
+	
+	check_remote_threshold_grp_array(&grp_array[0], num_of_grps);
+
 	for(int i=0; i<num_of_grps; i++)
 	{
 		print_execution_grp(&grp_array[i]);
@@ -369,7 +377,7 @@ void execute_pipe_command_remotely(COMMAND *command, int size, int host)
 	char *buffer = pipe_command_to_remote(command, size);
 	sprintf(com_string, "ssh %s %s", global_host_list->host_array[host-1]->server, buffer);
 	free(buffer);
-	//fprintf(stderr, "%s\n", com_string);
+	fprintf(stderr, "%s\n", com_string);
 	char **args = (char **)calloc(100, sizeof(char));
 	com_string_to_argv(com_string, args);
 	exec_execve(args);

@@ -14,3 +14,6 @@ int get_min_final_total_cost_index(EXEC_COST **plans);
 void write_to_global_plan(EXEC_COST **plans);
 void findExhaustivePatterns(COMMAND *command, int size, int hosts);
 long compute_pattern_cost(int *pattern, int size, COMMAND *command);
+void check_remote_threshold_grp_array(EXECUTION_GRP *array, int size);
+int check_remote_threshold_simple(COMMAND *command);
+int check_remote_threshold_grp(EXECUTION_GRP *grp);

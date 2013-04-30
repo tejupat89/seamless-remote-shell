@@ -324,3 +324,47 @@ long compute_pattern_cost(int *pattern, int size, COMMAND *command)
 	//DEBUG(("total_cost : %ld\n", total_cost));
 	return total_cost;
 }
+
+int check_remote_threshold_grp(EXECUTION_GRP *grp)
+{
+	COMMAND *command1 = grp->start;
+	PIPE_COM *pipe = command1->value.Pipe;
+	long threshold = 0;	
+
+	for(int i=0; i< grp->num_of_coms; i++)
+	{
+		threshold += *(command1->cost->input[grp->remote]);
+		command1 = pipe->next;
+		if(command1)
+			pipe = command1->value.Pipe;
+	}
+
+	if(threshold >= 4194304)
+		return 1;
+	return 0;	
+}
+
+int check_remote_threshold_simple(COMMAND *command)
+{
+	long threshold = 0;
+	int host = *(global_plan->array[0]);
+	threshold += *(command->cost->input[host]);
+	
+	if(threshold >= 4194304)
+	{
+		return 1;
+	}
+	*(global_plan->array[0])=0;
+	return 0;
+}
+
+void check_remote_threshold_grp_array(EXECUTION_GRP *array, int size)
+{
+	for(int i=0; i<size; i++)
+	{
+		int flag = check_remote_threshold_grp(array+i);
+		DEBUG(("\nthreshold flag: %d\n", flag));
+		if(!flag)
+			(array+i)->remote = 0;
+	}
+}

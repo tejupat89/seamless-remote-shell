@@ -14,8 +14,10 @@
 
 int local_or_remote(char* file)
 {
-	char *cwd="/home/tejas";
-	//getcwd(cwd, sizeof(cwd));
+	char cwd[150];
+	memset(cwd, 0, 150);
+	getcwd(cwd, sizeof(cwd));
+	DEBUG(("\ncwd : %s\n", cwd));
 	struct stat *home_stat=malloc(sizeof(struct stat));
 	struct stat *statinfo=malloc(sizeof(struct stat));
 	stat(cwd, home_stat);
